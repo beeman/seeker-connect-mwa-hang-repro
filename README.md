@@ -4,10 +4,24 @@ Reproduces a bug in `@solana-mobile/mobile-wallet-adapter-protocol@2.3.0` (`star
 
 Fix: https://github.com/solana-mobile/mobile-wallet-adapter/pull/1714
 
+## Repros with nothing injected
+
+`relay.solanamobile.com` closes a socket after 60s without traffic (`1006`, no close frame). Nothing is sent over the relay while the user looks at the wallet's approval sheet, so a slow approval drops the session. Both repros use the green **signAndSendTransaction (nothing injected)** button.
+
+| Repro | 2.3.0 | [#1715](https://github.com/solana-mobile/mobile-wallet-adapter/pull/1715) | [#1714](https://github.com/solana-mobile/mobile-wallet-adapter/pull/1714) |
+|---|---|---|---|
+| **1. Wait >60s in the wallet sheet.** The relay drops the socket. | hangs (still pending at 131s) | rejects at the drop, shows "Connection lost" | not run |
+| **2. Tap Close on "Continue in your Seeker Wallet"** while the wallet sheet is open (switch back to Chrome first). | not run (same code path as #1715) | hangs (still pending 65s later) | rejects in 0.1s with `cancelled` |
+
+Repro 2 hangs on #1715 because `handleForceClose` only rejects before the session is established, so `scenario.close()` leaves the in-flight request pending. seeker-connect's cancel waits on that request.
+
+After ~60s the wallet itself shows "Transaction expired", so in repro 1 nothing lands.
+
 ## What's added to the template
 
 - `package.json` pins `@solana-mobile/mobile-wallet-adapter-protocol` to `2.3.0` via `overrides`.
 - `public/repro.js` (loaded from `index.html`) wraps `WebSocket` to log relay traffic in an on-screen panel and can dispatch an `error` event on the relay socket 31s after it is created. Past the protocol's 30s connection window, `handleError` removes its listeners and does not reconnect.
+- `public/repro.js` also adds a green button that calls `signAndSendTransaction` with nothing injected.
 - `src/repro.ts` calls the Seeker Connect wallet's `solana:signAndSendTransaction` directly, so the wallet submits a devnet memo transaction.
 
 ## Run it

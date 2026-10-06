@@ -15,9 +15,13 @@
     btn.click()
     window.__reproSignAndSend()
   }
+  const plain = document.createElement('button')
+  plain.textContent = 'signAndSendTransaction (nothing injected)'
+  plain.style.cssText = 'display:block;width:100%;padding:12px;margin-bottom:6px;font:bold 15px sans-serif;background:#080;color:#fff'
+  plain.onclick = () => window.__reproSignAndSend()
   const pre = document.createElement('pre')
   pre.style.cssText = 'margin:0;white-space:pre-wrap'
-  box.append(btn, send, pre)
+  box.append(btn, send, plain, pre)
   const log = (msg) => {
     const line = `${((Date.now() - t0) / 1000).toFixed(1).padStart(6)}s ${msg}`
     lines.push(line)
